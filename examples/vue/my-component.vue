@@ -3,9 +3,8 @@
         <Button></Button>
     </div>
 </template>
-
 <script>
-// Vue.component('login',vueload("./login.vue"));
+// Vue.component('button',vueload("./button.vue"));
 module.exports = {
   data: function() {
     return {
@@ -13,12 +12,10 @@ module.exports = {
     };
   },
   components: {
-    "Button": vueload("./button.vue", "Button")
-    
+    "Button": vueload("./button.vue", "Button")    
   }
 };
 </script>
-
 <style>
 .hello {
   background-color: #ffe;
