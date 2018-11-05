@@ -12,7 +12,8 @@ module.exports = {
     };
   },
   components: {
-    "Button": vueload("./button.vue", "Button")    
+     "Button": vueload("./button.vue", "Button")   
+    //"url:./button.vue" 
   }
 };
 </script>
