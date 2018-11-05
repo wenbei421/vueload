@@ -24,16 +24,16 @@
     vueload.register(Vue,'./vue/my-component.vue'); //È«¾Ö×¢²á
     new Vue({
       el: '#my-app'
-    //   ,     
-    //   components: {
-    //     'my-component': vueload('./vue/my-component.vue')
-    // }   
-    //   components: {
-    //     'my-component': vueload('./vue/my-component.vue', 'my-component')
-    // }
-    // components: [
-    //      "url:./vue/my-component.vue"
-    // ]
+      ,     
+      components: {
+        'my-component': vueload('./vue/my-component.vue')
+    }   
+      components: {
+        'my-component': vueload('./vue/my-component.vue', 'my-component')
+    }
+    components: [
+         "url:./vue/my-component.vue"
+    ]
     });
   </script>
 </body>
