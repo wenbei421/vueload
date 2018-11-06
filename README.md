@@ -1,7 +1,7 @@
 # vueload.js
 
 ![](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![](https://img.shields.io/badge/license-Apache%20Licence%202.0-green.svg)
+![](https://img.shields.io/badge/MIT%20License-green.svg)
 
 *vueload.js是使用javascript实现异步加载一个.vue文件的库，可以实现vue组件按需异步加载*
 ## 使用方法
