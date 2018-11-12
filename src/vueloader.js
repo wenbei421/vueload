@@ -35,7 +35,7 @@
       return fBound;
     };
   }
-  
+
   //定义VueLoad的load方法
   vueload = function(url, name) {
     //解析vue的url
@@ -48,25 +48,44 @@
     var reg = new RegExp(char + "$");
     return reg.test(str);
   };
+  vueload.toAbsUrl = function(url) {
+    var a = document.createElement("a");
+    a.href = url;
+    return a.href;
+  };
+  //组件缓存
+  vueload.components = {};
   vueload.load = function(url, name) {
     return function() {
-      return new this.component(name, this)
-        .load(url)
-        .then(function(component) {
-          return component.compile();
-        })
-        .then(function(component) {
-          var exports =
-            component._script !== null
-              ? component._script.module.exports
-              : {};
-          if (component._template !== null)
-            exports.template = component._template.getContent();
-          if (exports.name === undefined)
-            if (component.name !== undefined) exports.name = component.name;
-          exports._baseURI = component.baseURI;
+      var absUrl = this.toAbsUrl(url);
+      if (this.components[absUrl]) 
+        return  new Promise(function(resolve, reject) {
+          resolve();
+        }).then(function(){
+          var exports = this.components[absUrl];
+          exports.name = name;
           return exports;
-        });
+        }.bind(this));
+      else
+        return new this.component(name, this)
+          .load(url)
+          .then(function(component) {
+            return component.compile();
+          })
+          .then(function(component) {
+            var exports =
+              component._script !== null
+                ? component._script.module.exports
+                : {};
+            if (component._template !== null)
+              exports.template = component._template.getContent();
+            if (exports.name === undefined)
+              if (component.name !== undefined) exports.name = component.name;
+            exports._baseURI = component.baseURI;
+            //缓存组件
+            component.vueload.components[absUrl] = exports;
+            return exports;
+          });
     }.bind(this);
   };
   vueload.require = function(moduleName) {
@@ -123,8 +142,7 @@
               } catch (error) {
                 reject(xhr, error);
               }
-            }
-            else reject(xhr, null);
+            } else reject(xhr, null);
           }
         };
       }.bind(this)
@@ -200,7 +218,10 @@
             components[componentName].substr(0, 4) === "url:"
           ) {
             var comp = vueload.parseURL(components[componentName].substr(4));
-            var componentURL = "_baseURI" in this.$options ? this.resolveURL(this.$options._baseURI, comp.url) : comp.url;
+            var componentURL =
+              "_baseURI" in this.$options
+                ? this.resolveURL(this.$options._baseURI, comp.url)
+                : comp.url;
             if (isNaN(componentName))
               components[componentName] = vueload.load(
                 componentURL,
@@ -316,24 +337,32 @@
     this.template = function(component, element) {
       this.component = component;
       this.element = element;
-      this.content =  this.component.responseText.match(/<template>([\s\S]*?)<\/template>/)[1];
+      this.content = this.component.responseText.match(
+        /<template>([\s\S]*?)<\/template>/
+      )[1];
       this.getContent = function() {
         return this.content;
       };
       this.setContent = function(content) {
         this.content = content;
       };
-      this.addScopeId = function (scopeId) {
-        var i = 0, start = 0, tagStart = false, rootTagName = "";
+      this.addScopeId = function(scopeId) {
+        var i = 0,
+          start = 0,
+          tagStart = false,
+          rootTagName = "";
         while (i < this.content.length) {
           if (this.content[i] != "<" && tagStart == false) {
             i++;
             continue;
-          }
-          else {
+          } else {
             tagStart = true;
             if (tagStart) {
-              if (this.content[i] != ' ' && this.content[i] != '\n' && this.content[i] != '\r')
+              if (
+                this.content[i] != " " &&
+                this.content[i] != "\n" &&
+                this.content[i] != "\r"
+              )
                 rootTagName = rootTagName + this.content[i];
               else {
                 start = i;
@@ -344,9 +373,10 @@
             i++;
           }
         }
-        this.content = rootTagName + " " + scopeId + this.content.substring(start);
+        this.content =
+          rootTagName + " " + scopeId + this.content.substring(start);
       };
-      this.compile = function () {
+      this.compile = function() {
         return Promise.resolve();
       };
     };
@@ -363,18 +393,12 @@
       this.compile = function() {
         var childModuleRequire = function(childURL) {
           return this.component.vueload.require(
-            this.component.vueload.resolveURL(
-              this.component.baseURI,
-              childURL
-            )
+            this.component.vueload.resolveURL(this.component.baseURI, childURL)
           );
         }.bind(this);
         var childLoader = function(childURL, childName) {
           return this.component.vueload(
-            this.component.vueload.resolveURL(
-              this.component.baseURI,
-              childURL
-            ),
+            this.component.vueload.resolveURL(this.component.baseURI, childURL),
             childName
           );
         }.bind(this);
@@ -396,8 +420,12 @@
           if (!("lineNumber" in ex)) {
             return Promise.reject(ex);
           }
-          var vueFileData = this.component.responseText.replace(/\r?\n/g,"\n");
-          var lineNumber = vueFileData.substr(0, vueFileData.indexOf(script)).split("\n").length + ex.lineNumber - 1;
+          var vueFileData = this.component.responseText.replace(/\r?\n/g, "\n");
+          var lineNumber =
+            vueFileData.substr(0, vueFileData.indexOf(script)).split("\n")
+              .length +
+            ex.lineNumber -
+            1;
           throw new ex.constructor(ex.message, url, lineNumber);
         }
         return Promise.resolve(this.module.exports);
@@ -421,9 +449,14 @@
             this.responseText = xhr.responseText;
             this.baseURI = url.substr(0, url.lastIndexOf("/") + 1);
             var doc = document.implementation.createHTMLDocument("");
-            doc.body.innerHTML = (this.baseURI ? '<base href="' + this.baseURI + '">' : "") + this.responseText;
-            for (var node = doc.body.firstChild; node; node = node.nextSibling) 
-            {
+            doc.body.innerHTML =
+              (this.baseURI ? '<base href="' + this.baseURI + '">' : "") +
+              this.responseText;
+            for (
+              var node = doc.body.firstChild;
+              node;
+              node = node.nextSibling
+            ) {
               switch (node.nodeName.toUpperCase()) {
                 case "TEMPLATE":
                   this._template = new this.template(this, node);
@@ -438,7 +471,8 @@
             }
             return this;
           }.bind(this)
-        ).catch(
+        )
+        .catch(
           function(error) {
             console.error("[vueload error]: " + error.message + error.stack);
             return this;

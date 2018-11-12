@@ -3,7 +3,7 @@
 
 <head>
   <script src="./es6-promise.auto.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <script src="../dist/vue.js"></script>
   <script src="../src/vueloader.js"></script>
   <style>
     .button{
@@ -14,26 +14,28 @@
 
 <body>
   <div id="my-app">
-    <button class="button" onclick="test()">测试</button>
+    <!-- <button class="button" onclick="test()">测试</button> -->
+    <my-button></my-button>
     <my-component></my-component>
   </div>
 
   <script type="text/javascript">   
-    vueload.install(Vue);  //使用url:./vue/my-component.vue写法必须先执行这一句
+    // vueload.install(Vue);  //使用url:./vue/my-component.vue写法必须先执行这一句
     // Vue.component('my-component',vueload("./vue/my-component.vue")); //全局注册
-    vueload.register(Vue,'./vue/my-component.vue'); //全局注册
+    // vueload.register(Vue,'./vue/my-component.vue'); //全局注册
     new Vue({
       el: '#my-app'
       ,     
       components: {
-        'my-component': vueload('./vue/my-component.vue')
+        'my-component': vueload('./vue/my-component.vue'),
+        "my-button": vueload("./vue/button.vue","my-button")   
     }   
-      components: {
-        'my-component': vueload('./vue/my-component.vue', 'my-component')
-    }
-    components: [
-         "url:./vue/my-component.vue"
-    ]
+    //   components: {
+    //     'my-component': vueload('./vue/my-component.vue', 'my-component')
+    // }
+    // components: [
+    //      "url:./vue/my-component.vue"
+    // ]
     });
   </script>
 </body>
