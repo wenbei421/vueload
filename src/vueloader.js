@@ -58,14 +58,16 @@
   vueload.load = function(url, name) {
     return function() {
       var absUrl = this.toAbsUrl(url);
-      if (this.components[absUrl]) 
-        return  new Promise(function(resolve, reject) {
+      if (this.components[absUrl])
+        return new Promise(function(resolve, reject) {
           resolve();
-        }).then(function(){
-          var exports = this.components[absUrl];
-          exports.name = name;
-          return exports;
-        }.bind(this));
+        }).then(
+          function() {
+            var exports = this.components[absUrl];
+            exports.name = name;
+            return exports;
+          }.bind(this)
+        );
       else
         return new this.component(name, this)
           .load(url)
@@ -88,8 +90,36 @@
           });
     }.bind(this);
   };
-  vueload.require = function(moduleName) {
-    return window[moduleName];
+  vueload.require = function(url) {
+   var xhr = vueload.ajax({ url: url, async: false,promise:false });   
+   var baseURI = url.substr(0, url.lastIndexOf("/") + 1);   
+   var module = { exports: {} };   
+    var childModuleRequire = function(childURL) {
+      return vueload.require(
+        vueload.resolveURL(baseURI, childURL)
+      );
+    }.bind(this);
+    try {
+      Function(
+        "exports",
+        "require",
+        "module",
+        xhr.responseText
+      ).call(
+        module.exports,
+        module.exports,
+        childModuleRequire,
+        module
+      );
+      return module.exports;
+    } catch (ex) {
+      if (!("lineNumber" in ex)) {
+        throw ex;
+      }
+      var vueFileData = xhr.responseText.replace(/\r?\n/g, "\n");
+      var lineNumber = vueFileData.substr(0, vueFileData.indexOf(script)).split("\n").length + ex.lineNumber - 1;
+      throw new ex.constructor(ex.message, url, lineNumber);
+    }
   };
   vueload.extend = function(dst, src) {
     for (var property in src) {
@@ -98,55 +128,31 @@
     return dst;
   };
   vueload.ajax = function(option) {
+    if(option.promise === undefined || option.promise === null)
+      option.promise = true;
+    if(option.promise)
     return new Promise(
       function(resolve, reject) {
-        _option = this.extend(
-          {
-            method: "GET",
-            contentType: "text/xml; charset=UTF-8",
-            timeout: 0,
-            url: "",
-            async: true,
-            data: null
-          },
-          option
-        );
-        try {
-          var xhr = getXMLHttpRequest();
-          if (_option.timeout > 0) xhr.timeout = _option.timeout;
-          var params = [];
-          for (var key in _option.data) {
-            params.push(key + "=" + _option.data[key]);
-          }
-          var postData = params.join("&");
-          if (_option.method.toUpperCase() === "POST") {
-            xhr.open(_option.method, _option.url, _option.async);
-            xhr.setRequestHeader("Content-Type", _option.contentType);
-            xhr.send(postData);
-          } else if (_option.method.toUpperCase() === "GET") {
-            xhr.open(
-              _option.method,
-              _option.url + (postData ? "?" + postData : ""),
-              _option.async
-            );
-            xhr.send(null);
-          }
+        try {        
+         var xhr = httpRequest(option);
         } catch (error) {
           reject(xhr, error);
         }
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
-              try {
-                resolve(xhr);
-              } catch (error) {
-                reject(xhr, error);
-              }
-            } else reject(xhr, null);
-          }
-        };
-      }.bind(this)
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+              if (xhr.status === 200) {
+                try {
+                  resolve(xhr);
+                } catch (error) {
+                  reject(xhr, error);
+                }
+              } else reject(xhr, null);
+            }
+          };
+      }.bind(this)      
     );
+    else
+      return httpRequest(option);
     function getXMLHttpRequest() {
       var xhr = false;
       if (window.XMLHttpRequest) {
@@ -166,7 +172,41 @@
         }
       }
       return xhr;
-    }
+    };    
+    function httpRequest(_option){     
+      _option = vueload.extend(
+        {
+          method: "GET",
+          contentType: "text/xml; charset=UTF-8",
+          timeout: 0,
+          url: "",
+          async: true,
+          data: null
+        },
+        option
+      );
+      var xhr = getXMLHttpRequest();
+      if (_option.timeout > 0) xhr.timeout = _option.timeout;
+      var params = [];
+      for (var key in _option.data) {
+        params.push(key + "=" + _option.data[key]);
+      }
+      var postData = params.join("&");
+      if (_option.method.toUpperCase() === "POST") {
+        xhr.open(_option.method, _option.url, _option.async);
+        xhr.setRequestHeader("Content-Type", _option.contentType);
+        xhr.send(postData);
+      } else if (_option.method.toUpperCase() === "GET") {
+        xhr.open(
+          _option.method,
+          _option.url + (postData ? "?" + postData : ""),
+          _option.async
+        );
+        xhr.send(null);
+        return xhr;
+      } 
+    };
+      
   };
   /**
    * @method
@@ -199,8 +239,11 @@
     return { name: name, url: path + (params ? "?" + params : "") };
   };
   vueload.resolveURL = function(baseURL, url) {
-    if (url.substr(0, 2) === "./" || url.substr(0, 3) === "../") {
-      return baseURL + url;
+    if (url.substr(0, 2) === "./") {
+      return baseURL + url.substr(2);
+    }    
+    if (url.substr(0, 3) === "../") {
+      return baseURL + url.substr(3);
     }
     return url;
   };
@@ -421,11 +464,7 @@
             return Promise.reject(ex);
           }
           var vueFileData = this.component.responseText.replace(/\r?\n/g, "\n");
-          var lineNumber =
-            vueFileData.substr(0, vueFileData.indexOf(script)).split("\n")
-              .length +
-            ex.lineNumber -
-            1;
+          var lineNumber = vueFileData.substr(0, vueFileData.indexOf(script)).split("\n") .length + ex.lineNumber - 1;
           throw new ex.constructor(ex.message, url, lineNumber);
         }
         return Promise.resolve(this.module.exports);
