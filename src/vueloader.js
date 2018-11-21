@@ -112,13 +112,8 @@
         module
       );
       return module.exports;
-    } catch (ex) {
-      if (!("lineNumber" in ex)) {
-        throw ex;
-      }
-      var vueFileData = xhr.responseText.replace(/\r?\n/g, "\n");
-      var lineNumber = vueFileData.substr(0, vueFileData.indexOf(script)).split("\n").length + ex.lineNumber - 1;
-      throw new ex.constructor(ex.message, url, lineNumber);
+    } catch (ex) {      
+      console.error("[vueload require compile error("+ url +")]: " + ex.message + ex.stack);
     }
   };
   vueload.extend = function(dst, src) {
@@ -434,6 +429,8 @@
         this.element.textContent = content;
       };
       this.compile = function() {
+        var url = this.component.url;
+        var name  = this.component.name;
         var childModuleRequire = function(childURL) {
           return this.component.vueload.require(
             this.component.vueload.resolveURL(this.component.baseURI, childURL)
@@ -460,16 +457,19 @@
             this.module
           );
         } catch (ex) {
-          if (!("lineNumber" in ex)) {
-            return Promise.reject(ex);
+          if (!("lineNumber" in ex)) {           
+            console.error("[vueload component script compile error("+ name +":"+ url +")]: " + ex.message + ex.stack);
           }
-          var vueFileData = this.component.responseText.replace(/\r?\n/g, "\n");
-          var lineNumber = vueFileData.substr(0, vueFileData.indexOf(script)).split("\n") .length + ex.lineNumber - 1;
-          throw new ex.constructor(ex.message, url, lineNumber);
+          else{
+            var vueFileData = this.component.responseText.replace(/\r?\n/g, "\n");
+            var lineNumber = vueFileData.substr(0, vueFileData.indexOf(script)).split("\n") .length + ex.lineNumber - 1;
+            // throw new ex.constructor(ex.message, url, lineNumber);          
+            console.error("[vueload component script compile error("+ name +":"+ url + ")]: " + ex.message + ex.stack);
+          }
         }
         return Promise.resolve(this.module.exports);
       };
-    };
+    }                             ;
     this.getHead = function() {
       return document.head || document.getElementsByTagName("head")[0];
     };
@@ -481,6 +481,7 @@
       return this._scopeId;
     };
     this.load = function(url) {
+      this.url = url;
       return this.vueload
         .ajax({ url: url })
         .then(
@@ -513,7 +514,7 @@
         )
         .catch(
           function(error) {
-            console.error("[vueload error]: " + error.message + error.stack);
+            console.error("[vueload error("+ url +")]: " + error.message + error.stack);
             return this;
           }.bind(this)
         );
