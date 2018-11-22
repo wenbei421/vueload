@@ -375,9 +375,7 @@
     this.template = function(component, element) {
       this.component = component;
       this.element = element;
-      this.content = this.component.responseText.match(
-        /<template>([\s\S]*?)<\/template>/
-      )[1];
+      this.content = this.component.responseText.match(/<template[\s\S]*?>([\s\S]*?)<\/template>(?![\w\W]*?<\/template>)/)[1];
       this.getContent = function() {
         return this.content;
       };
@@ -399,7 +397,8 @@
               if (
                 this.content[i] != " " &&
                 this.content[i] != "\n" &&
-                this.content[i] != "\r"
+                this.content[i] != "\r" &&
+                this.content[i] != ">"
               )
                 rootTagName = rootTagName + this.content[i];
               else {

@@ -14,21 +14,22 @@
 
 <body>
   <div id="my-app">
-    <!-- <button class="button" onclick="test()">²âÊÔ</button> -->
+    <!-- <button class="button" onclick="test()">ï¿½ï¿½ï¿½ï¿½</button> -->
     <my-button></my-button>
     <my-component></my-component>
+    <my-template></my-template>
   </div>
 
   <script type="text/javascript">   
-    // vueload.install(Vue);  //Ê¹ÓÃurl:./vue/my-component.vueÐ´·¨±ØÐëÏÈÖ´ÐÐÕâÒ»¾ä
-    // Vue.component('my-component',vueload("./vue/my-component.vue")); //È«¾Ö×¢²á
-    // vueload.register(Vue,'./vue/my-component.vue'); //È«¾Ö×¢²á
+    // vueload.install(Vue);  //Ê¹ï¿½ï¿½url:./vue/my-component.vueÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö´ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+    // Vue.component('my-component',vueload("./vue/my-component.vue")); //È«ï¿½ï¿½×¢ï¿½ï¿½
+    // vueload.register(Vue,'./vue/my-component.vue'); //È«ï¿½ï¿½×¢ï¿½ï¿½
     new Vue({
-      el: '#my-app'
-      ,     
+      el: '#my-app',     
       components: {
         'my-component': vueload('./vue/my-component.vue'),
-        "my-button": vueload("./vue/button.vue","my-button")   
+        "my-button": vueload("./vue/button.vue","my-button"), 
+        "my-template": vueload("./vue/template.vue","my-template") 
     }   
     //   components: {
     //     'my-component': vueload('./vue/my-component.vue', 'my-component')
